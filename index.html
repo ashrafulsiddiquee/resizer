@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OptiMedia - Responsive Image & PDF Resizer</title>
+  
+  <!-- SEO & Social Meta Tags -->
+  <meta name="description" content="Free, fast, and secure client-side Image and PDF Resizer. Compress and resize JPG, PNG, WebP, and PDF files with Low, Medium, and High resolution options.">
+  <meta name="keywords" content="image resizer, pdf resizer, compress pdf, reduce image size, webp converter, client-side resizer">
+  <meta name="author" content="Md Ashraful Hakim Khan Siddiquee">
+  <meta property="og:title" content="OptiMedia - Image & PDF Resizer">
+  <meta property="og:description" content="Secure, in-browser image and PDF compression tool with instant preview and stats.">
+  <meta property="og:type" content="website">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- External Libraries for PDF processing -->
+  <!-- PDF.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Google Font: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    /* Custom Dropzone Drag Animation */
+    .drag-active {
+      border-color: #6366f1 !important;
+      background-color: rgba(99, 102, 241, 0.08) !important;
+      transform: scale(1.008);
+    }
+    /* Smooth Transitions */
+    * {
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
+
+  <!-- Toast Notification System (Replaces alert) -->
+  <div id="toast" class="fixed top-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl transform translate-y-[-150%] transition-transform duration-300 pointer-events-none text-sm font-medium">
+    <span id="toastIcon"></span>
+    <span id="toastMessage"></span>
+  </div>
+
+  <!-- Header Section -->
+  <header class="w-full border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3 cursor-pointer" onclick="resetApp()">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent">OptiMedia</h1>
+          <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Image & PDF Resizer</p>
+        </div>
+      </div>
+
+      <!-- Right Nav: Privacy Badge & Theme Toggle -->
+      <div class="flex items-center gap-3">
+        <span class="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+          </svg>
+          100% Client-Side Secure
+        </span>
+
+        <!-- Dark / Light Mode Button -->
+        <button id="themeToggle" aria-label="Toggle Theme" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+          <!-- Sun Icon -->
+          <svg id="sunIcon" class="w-5 h-5 text-amber-500 hidden" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"></path>
+          </svg>
+          <!-- Moon Icon -->
+          <svg id="moonIcon" class="w-5 h-5 text-slate-600 dark:text-slate-300" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 md:py-12">
+
+    <!-- Upload Screen (Default View) -->
+    <div id="uploadView" class="space-y-6">
+      <div class="text-center max-w-xl mx-auto mb-8">
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          Resize & Compress Files in Seconds
+        </h2>
+        <p class="mt-2 text-base text-slate-600 dark:text-slate-400">
+          Fast, high quality client-side processing. Your files never leave your browser.
+        </p>
+      </div>
+
+      <!-- Drag & Drop Zone -->
+      <div id="dropZone" class="border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60 rounded-3xl p-8 sm:p-12 text-center cursor-pointer hover:border-indigo-500 dark:hover:border-indigo-400 hover:shadow-lg transition-all flex flex-col items-center justify-center">
+        <input type="file" id="fileInput" class="hidden" accept="image/jpeg,image/png,image/webp,application/pdf">
+        
+        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-4 ring-8 ring-indigo-50/50 dark:ring-indigo-950/30">
+          <svg class="w-8 h-8 sm:w-10 sm:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+          </svg>
+        </div>
+
+        <h3 class="text-lg sm:text-xl font-semibold text-slate-800 dark:text-slate-100">
+          Drop your Image or PDF here
+        </h3>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-4">
+          or <span class="text-indigo-600 dark:text-indigo-400 font-medium underline underline-offset-2">browse from your computer / phone</span>
+        </p>
+
+        <!-- Supported Formats Badges -->
+        <div class="flex flex-wrap items-center justify-center gap-2 mt-2">
+          <span class="px-2.5 py-1 text-xs font-semibold rounded-md bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">JPG</span>
+          <span class="px-2.5 py-1 text-xs font-semibold rounded-md bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">PNG</span>
+          <span class="px-2.5 py-1 text-xs font-semibold rounded-md bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">WEBP</span>
+          <span class="px-2.5 py-1 text-xs font-semibold rounded-md bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/40">PDF</span>
+        </div>
+      </div>
+
+      <!-- Value Props -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6">
+        <div class="p-4 rounded-2xl bg-white dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 flex items-start gap-3">
+          <div class="p-2 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+          </div>
+          <div>
+            <h4 class="font-semibold text-sm text-slate-800 dark:text-slate-200">Instant Processing</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Hardware-accelerated resizing via HTML5 Canvas.</p>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-white dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 flex items-start gap-3">
+          <div class="p-2 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+          </div>
+          <div>
+            <h4 class="font-semibold text-sm text-slate-800 dark:text-slate-200">Full PDF Engine</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Re-rasterizes each page and builds an optimized PDF.</p>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-white dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 flex items-start gap-3">
+          <div class="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+          </div>
+          <div>
+            <h4 class="font-semibold text-sm text-slate-800 dark:text-slate-200">Zero Cloud Uploads</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Data never travels over the web. Total privacy.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Processing & Results Screen (Appears once file is chosen) -->
+    <div id="workspaceView" class="hidden space-y-6">
+      
+      <!-- Top Bar: File Details & Reset Button -->
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm">
+        <div class="flex items-center gap-3 overflow-hidden">
+          <div id="fileTypeIcon" class="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-xs uppercase shrink-0">
+            <!-- Populated via JS -->
+          </div>
+          <div class="overflow-hidden">
+            <h3 id="fileName" class="text-base font-semibold text-slate-900 dark:text-white truncate">document.pdf</h3>
+            <p id="fileMeta" class="text-xs text-slate-500 dark:text-slate-400">PDF • 1.2 MB</p>
+          </div>
+        </div>
+
+        <button onclick="resetApp()" class="self-end sm:self-auto px-3.5 py-1.5 text-xs font-semibold rounded-xl border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+          Choose Another File
+        </button>
+      </div>
+
+      <!-- Resolution Selection Cards -->
+      <div class="space-y-3">
+        <label class="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+          Select Desired Resolution Preset:
+        </label>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          
+          <!-- Low Resolution -->
+          <div onclick="selectPreset('low')" id="preset-low" class="preset-card cursor-pointer p-4 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 transition relative">
+            <div class="flex justify-between items-start">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Smallest Size</span>
+              <div class="radio-indicator w-4 h-4 rounded-full border border-slate-400 flex items-center justify-center">
+                <div class="dot w-2 h-2 rounded-full bg-indigo-600 hidden"></div>
+              </div>
+            </div>
+            <h4 class="text-lg font-bold mt-2 text-slate-900 dark:text-white">Low</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Max 800px width/height.</p>
+            <p class="text-[11px] text-indigo-600 dark:text-indigo-400 mt-2 font-medium">Ideal for email & fast web transfer</p>
+          </div>
+
+          <!-- Medium Resolution (Default) -->
+          <div onclick="selectPreset('medium')" id="preset-medium" class="preset-card cursor-pointer p-4 rounded-2xl border-2 border-indigo-600 dark:border-indigo-500 bg-indigo-50/40 dark:bg-indigo-950/20 transition relative">
+            <div class="flex justify-between items-start">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300">Recommended</span>
+              <div class="radio-indicator w-4 h-4 rounded-full border border-indigo-600 flex items-center justify-center">
+                <div class="dot w-2 h-2 rounded-full bg-indigo-600"></div>
+              </div>
+            </div>
+            <h4 class="text-lg font-bold mt-2 text-slate-900 dark:text-white">Medium</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Max 1400px width/height.</p>
+            <p class="text-[11px] text-indigo-600 dark:text-indigo-400 mt-2 font-medium">Great balance of quality and size</p>
+          </div>
+
+          <!-- High Resolution -->
+          <div onclick="selectPreset('high')" id="preset-high" class="preset-card cursor-pointer p-4 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 transition relative">
+            <div class="flex justify-between items-start">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Sharpest</span>
+              <div class="radio-indicator w-4 h-4 rounded-full border border-slate-400 flex items-center justify-center">
+                <div class="dot w-2 h-2 rounded-full bg-indigo-600 hidden"></div>
+              </div>
+            </div>
+            <h4 class="text-lg font-bold mt-2 text-slate-900 dark:text-white">High</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Max 2400px width/height.</p>
+            <p class="text-[11px] text-indigo-600 dark:text-indigo-400 mt-2 font-medium">Maintains high quality details</p>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Action Button / Progress -->
+      <div id="progressContainer" class="hidden space-y-2 py-2">
+        <div class="flex justify-between text-xs font-semibold text-slate-600 dark:text-slate-300">
+          <span id="progressStatus">Processing file...</span>
+          <span id="progressPercent">0%</span>
+        </div>
+        <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 overflow-hidden">
+          <div id="progressBar" class="bg-indigo-600 h-3 rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Trigger Process Button -->
+      <button id="processBtn" onclick="processSelectedFile()" class="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold shadow-lg shadow-indigo-500/25 transition active:scale-[0.99] flex items-center justify-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+        Resize & Optimize Now
+      </button>
+
+      <!-- Results & Preview Box (Shown after resizing) -->
+      <div id="resultsCard" class="hidden space-y-6 pt-4 border-t border-slate-200 dark:border-slate-800">
+        
+        <!-- Stats Comparison Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 text-center">
+          <div class="p-3.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Original Size</span>
+            <p id="statOriginalSize" class="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-100 mt-1">--</p>
+          </div>
+
+          <div class="p-3.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Resized Size</span>
+            <p id="statNewSize" class="text-lg sm:text-xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">--</p>
+          </div>
+
+          <div class="col-span-2 sm:col-span-1 p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60">
+            <span class="text-xs text-emerald-700 dark:text-emerald-300 font-medium">Storage Reduction</span>
+            <p id="statReduction" class="text-lg sm:text-xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">--</p>
+          </div>
+        </div>
+
+        <!-- Download & Instant Action -->
+        <div class="flex flex-col sm:flex-row gap-3">
+          <a id="downloadLink" href="#" download="resized-file" class="flex-1 py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-center shadow-lg shadow-emerald-600/25 transition active:scale-[0.99] flex items-center justify-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            Download Resized File
+          </a>
+        </div>
+
+        <!-- Visual Preview Area -->
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 overflow-hidden">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Visual Preview</span>
+            <span id="previewDimensionTag" class="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium">--</span>
+          </div>
+          
+          <div class="flex items-center justify-center bg-slate-100 dark:bg-slate-900/60 rounded-xl p-3 min-h-[220px] max-h-[460px] overflow-auto">
+            <!-- Image preview element -->
+            <img id="imagePreview" class="max-h-[420px] w-auto h-auto object-contain rounded-lg shadow-sm hidden" alt="Resized Preview">
+            <!-- Canvas for PDF or fallback -->
+            <canvas id="pdfPreviewCanvas" class="max-h-[420px] w-auto h-auto object-contain rounded-lg shadow-sm hidden"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Global Footer -->
+  <footer class="w-full border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+    <div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <p>Copyright © Md Ashraful Hakim Khan Siddiquee. All rights reserved.</p>
+      <div class="flex items-center gap-4 text-xs">
+        <span>No server storage</span>
+        <span>•</span>
+        <span>Runs in browser</span>
+        <span>•</span>
+        <span>Open Source Compatible</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Application Script -->
+  <script>
+    /* ==========================================================
+       Global App State & Initializations
+       ========================================================== */
+    let currentFile = null;
+    let selectedPreset = 'medium'; // 'low', 'medium', 'high'
+    let outputBlob = null;
+    let originalFileSize = 0;
+
+    // Presets Configuration
+    const PRESETS = {
+      low: {
+        maxDim: 800,
+        imageQuality: 0.55,
+        pdfScaleMultiplier: 0.9,
+        label: 'Low (Max 800px)'
+      },
+      medium: {
+        maxDim: 1400,
+        imageQuality: 0.75,
+        pdfScaleMultiplier: 1.4,
+        label: 'Medium (Max 1400px)'
+      },
+      high: {
+        maxDim: 2400,
+        imageQuality: 0.90,
+        pdfScaleMultiplier: 2.0,
+        label: 'High (Max 2400px)'
+      }
+    };
+
+    // Configure PDF.js Worker
+    if (typeof pdfjsLib !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    /* ==========================================================
+       Dark / Light Mode Handling
+       ========================================================== */
+    const themeToggleBtn = document.getElementById('themeToggle');
+    const sunIcon = document.getElementById('sunIcon');
+    const moonIcon = document.getElementById('moonIcon');
+
+    function applyTheme(isDark) {
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+        sunIcon.classList.remove('hidden');
+        moonIcon.classList.add('hidden');
+      } else {
+        document.documentElement.classList.remove('dark');
+        sunIcon.classList.add('hidden');
+        moonIcon.classList.remove('hidden');
+      }
+    }
+
+    // Initialize Theme from localStorage or system preference
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDarkMode = savedTheme ? savedTheme === 'dark' : prefersDark;
+    applyTheme(isDarkMode);
+
+    themeToggleBtn.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      applyTheme(isDark);
+    });
+
+    /* ==========================================================
+       Toast Message Helper (Replaces alert)
+       ========================================================== */
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toastMessage');
+      const toastIcon = document.getElementById('toastIcon');
+
+      toastMessage.textContent = message;
+      toast.className = 'fixed top-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl transition-transform duration-300 text-sm font-medium border ';
+
+      if (type === 'error') {
+        toast.className += 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950 dark:text-rose-200 dark:border-rose-800';
+        toastIcon.innerHTML = '⚠️';
+      } else if (type === 'success') {
+        toast.className += 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:border-emerald-800';
+        toastIcon.innerHTML = '✅';
+      } else {
+        toast.className += 'bg-slate-900 text-white border-slate-700 dark:bg-white dark:text-slate-900';
+        toastIcon.innerHTML = 'ℹ️';
+      }
+
+      toast.style.transform = 'translateY(0)';
+      setTimeout(() => {
+        toast.style.transform = 'translateY(-150%)';
+      }, 3500);
+    }
+
+    /* ==========================================================
+       Drag and Drop & File Input Handling
+       ========================================================== */
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add('drag-active');
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('drag-active');
+      }, false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      const files = e.dataTransfer.files;
+      if (files && files.length > 0) {
+        handleFileSelection(files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        handleFileSelection(e.target.files[0]);
+      }
+    });
+
+    function formatBytes(bytes, decimals = 2) {
+      if (!bytes || bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const dm = decimals < 0 ? 0 : decimals;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+
+    function handleFileSelection(file) {
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+      if (!validTypes.includes(file.type)) {
+        showToast('Please upload a supported file: JPG, PNG, WebP, or PDF.', 'error');
+        return;
+      }
+
+      currentFile = file;
+      originalFileSize = file.size;
+
+      // Update Top Card UI
+      document.getElementById('fileName').textContent = file.name;
+      const isPdf = file.type === 'application/pdf';
+      document.getElementById('fileMeta').textContent = `${isPdf ? 'PDF Document' : file.type.replace('image/', '').toUpperCase()} • ${formatBytes(file.size)}`;
+
+      const typeIcon = document.getElementById('fileTypeIcon');
+      if (isPdf) {
+        typeIcon.className = 'w-12 h-12 rounded-xl flex items-center justify-center font-bold text-xs uppercase shrink-0 bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-300';
+        typeIcon.textContent = 'PDF';
+      } else {
+        typeIcon.className = 'w-12 h-12 rounded-xl flex items-center justify-center font-bold text-xs uppercase shrink-0 bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-300';
+        typeIcon.textContent = file.name.split('.').pop();
+      }
+
+      // Hide results from previous run if any
+      document.getElementById('resultsCard').classList.add('hidden');
+      document.getElementById('progressContainer').classList.add('hidden');
+
+      // Switch views
+      document.getElementById('uploadView').classList.add('hidden');
+      document.getElementById('workspaceView').classList.remove('hidden');
+
+      showToast(`Loaded: ${file.name}`, 'info');
+    }
+
+    function resetApp() {
+      currentFile = null;
+      outputBlob = null;
+      originalFileSize = 0;
+      fileInput.value = '';
+      
+      document.getElementById('uploadView').classList.remove('hidden');
+      document.getElementById('workspaceView').classList.add('hidden');
+      document.getElementById('resultsCard').classList.add('hidden');
+      document.getElementById('progressContainer').classList.add('hidden');
+    }
+
+    /* ==========================================================
+       Preset Selection Handling
+       ========================================================== */
+    function selectPreset(presetKey) {
+      selectedPreset = presetKey;
+      const presets = ['low', 'medium', 'high'];
+
+      presets.forEach(key => {
+        const card = document.getElementById(`preset-${key}`);
+        const dot = card.querySelector('.dot');
+        const indicator = card.querySelector('.radio-indicator');
+
+        if (key === presetKey) {
+          card.classList.add('border-indigo-600', 'dark:border-indigo-500', 'bg-indigo-50/40', 'dark:bg-indigo-950/20');
+          card.classList.remove('border-slate-200', 'dark:border-slate-700', 'bg-white', 'dark:bg-slate-800');
+          indicator.classList.add('border-indigo-600');
+          indicator.classList.remove('border-slate-400');
+          dot.classList.remove('hidden');
+        } else {
+          card.classList.remove('border-indigo-600', 'dark:border-indigo-500', 'bg-indigo-50/40', 'dark:bg-indigo-950/20');
+          card.classList.add('border-slate-200', 'dark:border-slate-700', 'bg-white', 'dark:bg-slate-800');
+          indicator.classList.remove('border-indigo-600');
+          indicator.classList.add('border-slate-400');
+          dot.classList.add('hidden');
+        }
+      });
+    }
+
+    /* ==========================================================
+       Core Processing Router (Image vs PDF)
+       ========================================================== */
+    async function processSelectedFile() {
+      if (!currentFile) {
+        showToast('No file selected.', 'error');
+        return;
+      }
+
+      const processBtn = document.getElementById('processBtn');
+      processBtn.disabled = true;
+      processBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+      const progressContainer = document.getElementById('progressContainer');
+      const progressBar = document.getElementById('progressBar');
+      const progressStatus = document.getElementById('progressStatus');
+      const progressPercent = document.getElementById('progressPercent');
+
+      progressContainer.classList.remove('hidden');
+      progressBar.style.width = '10%';
+      progressPercent.textContent = '10%';
+      progressStatus.textContent = 'Analyzing file...';
+
+      try {
+        if (currentFile.type === 'application/pdf') {
+          await processPdf(currentFile, PRESETS[selectedPreset]);
+        } else {
+          await processImage(currentFile, PRESETS[selectedPreset]);
+        }
+      } catch (err) {
+        console.error('Processing error:', err);
+        showToast('Error during resizing: ' + (err.message || 'Unknown error'), 'error');
+      } finally {
+        processBtn.disabled = false;
+        processBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+    }
+
+    /* ==========================================================
+       Image Processing Logic (Canvas)
+       ========================================================== */
+    function processImage(file, preset) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        const progressBar = document.getElementById('progressBar');
+        const progressStatus = document.getElementById('progressStatus');
+        const progressPercent = document.getElementById('progressPercent');
+
+        reader.onload = function(e) {
+          const img = new Image();
+          img.onload = function() {
+            progressBar.style.width = '40%';
+            progressPercent.textContent = '40%';
+            progressStatus.textContent = 'Calculating dimensions...';
+
+            let { width, height } = img;
+            const maxDim = preset.maxDim;
+
+            // Maintain aspect ratio while clamping to maxDim
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              } else {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+
+            // Create Canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+
+            // Draw image with smooth scaling
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, 0, 0, width, height);
+
+            progressBar.style.width = '75%';
+            progressPercent.textContent = '75%';
+            progressStatus.textContent = 'Compressing image data...';
+
+            // Determine output MIME type
+            // JPEG or WebP can leverage the quality parameter. For PNG, convert to JPEG for high compression if Low/Medium is chosen
+            let outputMime = file.type;
+            if (file.type === 'image/png' && selectedPreset === 'low') {
+              outputMime = 'image/jpeg';
+            }
+
+            canvas.toBlob((blob) => {
+              if (!blob) {
+                reject(new Error('Canvas to Blob conversion failed'));
+                return;
+              }
+
+              progressBar.style.width = '100%';
+              progressPercent.textContent = '100%';
+              progressStatus.textContent = 'Done!';
+
+              outputBlob = blob;
+              const url = URL.createObjectURL(blob);
+
+              // Update Visual Preview
+              const imagePreview = document.getElementById('imagePreview');
+              const pdfPreviewCanvas = document.getElementById('pdfPreviewCanvas');
+              imagePreview.src = url;
+              imagePreview.classList.remove('hidden');
+              pdfPreviewCanvas.classList.add('hidden');
+
+              document.getElementById('previewDimensionTag').textContent = `${width} × ${height} px`;
+
+              displayResults(file.name, outputMime, blob.size, url);
+              resolve();
+            }, outputMime, preset.imageQuality);
+          };
+
+          img.onerror = () => reject(new Error('Failed to load image element'));
+          img.src = e.target.result;
+        };
+
+        reader.onerror = () => reject(new Error('Failed to read file data'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    /* ==========================================================
+       PDF Processing Logic (PDF.js + jsPDF)
+       ========================================================== */
+    async function processPdf(file, preset) {
+      const progressBar = document.getElementById('progressBar');
+      const progressStatus = document.getElementById('progressStatus');
+      const progressPercent = document.getElementById('progressPercent');
+
+      progressStatus.textContent = 'Reading PDF structure...';
+      const arrayBuffer = await file.arrayBuffer();
+      const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const totalPages = pdfDoc.numPages;
+
+      if (totalPages === 0) {
+        throw new Error('PDF has no readable pages.');
+      }
+
+      const { jsPDF } = window.jspdf;
+      let newPdf = null;
+      let firstCanvasForPreview = null;
+
+      for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+        const pct = Math.round(((pageNum - 1) / totalPages) * 80) + 10;
+        progressBar.style.width = `${pct}%`;
+        progressPercent.textContent = `${pct}%`;
+        progressStatus.textContent = `Optimizing page ${pageNum} of ${totalPages}...`;
+
+        const page = await pdfDoc.getPage(pageNum);
+        const originalViewport = page.getViewport({ scale: 1.0 });
+
+        // Calculate scaling based on preset resolution
+        let scale = preset.pdfScaleMultiplier;
+        const maxPageDim = Math.max(originalViewport.width, originalViewport.height);
+        
+        if (maxPageDim * scale > preset.maxDim) {
+          scale = preset.maxDim / maxPageDim;
+        }
+
+        const viewport = page.getViewport({ scale: scale });
+
+        // Offscreen canvas for rendering page
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext('2d');
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+
+        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+        if (pageNum === 1) {
+          firstCanvasForPreview = canvas;
+        }
+
+        // Compress canvas page to JPEG
+        const pageImgData = canvas.toDataURL('image/jpeg', preset.imageQuality);
+
+        // Dimensions in PDF points (72 pt per inch)
+        const pdfWidthPt = originalViewport.width;
+        const pdfHeightPt = originalViewport.height;
+        const orientation = pdfWidthPt > pdfHeightPt ? 'l' : 'p';
+
+        if (pageNum === 1) {
+          newPdf = new jsPDF({
+            orientation: orientation,
+            unit: 'pt',
+            format: [pdfWidthPt, pdfHeightPt]
+          });
+          newPdf.addImage(pageImgData, 'JPEG', 0, 0, pdfWidthPt, pdfHeightPt, undefined, 'FAST');
+        } else {
+          newPdf.addPage([pdfWidthPt, pdfHeightPt], orientation);
+          newPdf.addImage(pageImgData, 'JPEG', 0, 0, pdfWidthPt, pdfHeightPt, undefined, 'FAST');
+        }
+      }
+
+      progressBar.style.width = '95%';
+      progressPercent.textContent = '95%';
+      progressStatus.textContent = 'Packaging optimized PDF...';
+
+      const pdfBlob = newPdf.output('blob');
+      outputBlob = pdfBlob;
+      const downloadUrl = URL.createObjectURL(pdfBlob);
+
+      // Render first page onto the visual canvas preview
+      const previewCanvas = document.getElementById('pdfPreviewCanvas');
+      const imagePreview = document.getElementById('imagePreview');
+      previewCanvas.width = firstCanvasForPreview.width;
+      previewCanvas.height = firstCanvasForPreview.height;
+      const prevCtx = previewCanvas.getContext('2d');
+      prevCtx.drawImage(firstCanvasForPreview, 0, 0);
+
+      previewCanvas.classList.remove('hidden');
+      imagePreview.classList.add('hidden');
+
+      document.getElementById('previewDimensionTag').textContent = `${totalPages} page${totalPages > 1 ? 's' : ''}`;
+
+      progressBar.style.width = '100%';
+      progressPercent.textContent = '100%';
+      progressStatus.textContent = 'Complete!';
+
+      displayResults(file.name, 'application/pdf', pdfBlob.size, downloadUrl);
+    }
+
+    /* ==========================================================
+       Display Results & Calculate Statistics
+       ========================================================== */
+    function displayResults(originalName, outputMime, newSize, downloadUrl) {
+      const resultsCard = document.getElementById('resultsCard');
+      resultsCard.classList.remove('hidden');
+
+      // Size comparison stats
+      document.getElementById('statOriginalSize').textContent = formatBytes(originalFileSize);
+      document.getElementById('statNewSize').textContent = formatBytes(newSize);
+
+      const diff = originalFileSize - newSize;
+      const percentSaved = Math.round((diff / originalFileSize) * 100);
+
+      const statReduction = document.getElementById('statReduction');
+      if (diff > 0) {
+        statReduction.textContent = `${percentSaved}% Saved`;
+        statReduction.className = 'text-lg sm:text-xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1';
+      } else {
+        // If file was already highly compressed
+        statReduction.textContent = `Optimized (+${Math.abs(percentSaved)}%)`;
+        statReduction.className = 'text-lg sm:text-xl font-extrabold text-slate-600 dark:text-slate-300 mt-1';
+      }
+
+      // Configure Download Link
+      const downloadLink = document.getElementById('downloadLink');
+      const extMatch = originalName.lastIndexOf('.');
+      const baseName = extMatch !== -1 ? originalName.substring(0, extMatch) : originalName;
+      let newExt = outputMime === 'application/pdf' ? 'pdf' : (outputMime === 'image/jpeg' ? 'jpg' : 'png');
+
+      const finalDownloadName = `${baseName}-${selectedPreset}-resized.${newExt}`;
+      downloadLink.href = downloadUrl;
+      downloadLink.download = finalDownloadName;
+
+      showToast(`Processed successfully! ${percentSaved > 0 ? percentSaved + '% smaller' : ''}`, 'success');
+
+      // Smooth scroll to results
+      resultsCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  </script>
+</body>
+</html>
