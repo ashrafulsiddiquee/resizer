@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://ashrafulsiddiquee.github.io/resizer/
+Sitemap: https://ashrafulsiddiquee.github.io/resizer/sitemap.xml
